@@ -18,7 +18,7 @@ services:
       DOCKER_INFLUXDB_INIT_BUCKET: bucket
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-super-secret-auth-token
 
-  mqtt-to-influxdb2:
+  edge-mqtt-to-influxdb2:
     image: telegraf:1.30
     container_name: telegraf
     depends_on:
@@ -34,7 +34,24 @@ services:
       INFLUXDB_ORG: agri-insight
       INFLUXDB_BUCKET: bucket
     volumes:
-      - ./mqtt-to-influxdb2/telegraf.toml:/etc/telegraf/telegraf.conf:ro
+      - ./edge-mqtt-to-influxdb2/telegraf.toml:/etc/telegraf/telegraf.conf:ro
+  cloud-mqtt-to-edge-mqtt:
+    image: telegraf:1.30
+    container_name: telegraf
+    depends_on:
+      - influxdb2
+    links:
+      - influxdb2
+    environment:
+      MQTT_BROKER_URL: tcp://host.docker.internal:1883
+      MQTT_USERNAME: admin
+      MQTT_PASSWORD: admin
+      INFLUXDB_URL: http://influxdb2:8086
+      INFLUXDB_TOKEN: my-super-secret-auth-token
+      INFLUXDB_ORG: agri-insight
+      INFLUXDB_BUCKET: bucket
+    volumes:
+      - ./cloud-mqtt-to-edge-mqtt/telegraf.toml:/etc/telegraf/telegraf.conf:ro
 
 volumes:
   influxdb2-data:
