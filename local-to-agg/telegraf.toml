@@ -1,0 +1,68 @@
+# Global tags
+[global_tags]
+organization = "${INFLUXDB_ORG}"
+local_broker_id = "${LOCAL_MQTT_BROKER_ID}"
+
+# MQTT Consumer Input Plugin
+[[inputs.mqtt_consumer]]
+servers = ["${LOCAL_MQTT_BROKER_URL}"]
+topics = [
+	"sensors/+/air/temperature",
+	"sensors/+/soil/temperature"
+]
+username = "${LOCAL_MQTT_USERNAME}"
+password = "${LOCAL_MQTT_PASSWORD}"
+data_format = "json"
+json_time_key = "timestamp"
+json_time_format = "unix_ms"
+
+# Topic parsing for air temperature sensors
+[[inputs.mqtt_consumer.topic_parsing]]
+topic = "+/+/+/+"
+measurement = "measurement/_/_/_"
+tags = "_/field_id/sensor_type/sensor_measurement"
+
+# Output Plugin to InfluxDB v2
+[[outputs.influxdb_v2]]
+urls = ["${INFLUXDB_URL}"]
+timeout = "30s"
+content_encoding = "gzip"
+
+token = "${INFLUXDB_TOKEN}"
+organization = "${INFLUXDB_ORG}"
+bucket = "${INFLUXDB_BUCKET}"
+
+# Tag exclusion (optional, depending on your needs)
+tagexclude = ["host", "topic"]
+
+# Output Plugin to MQTT LOCAL ECHO Publisher
+[[outputs.mqtt]]
+servers = ["${LOCAL_MQTT_BROKER_URL}"]
+topic = 'echo/{{ .Tag "topic" }}'
+username = "${LOCAL_MQTT_USERNAME}"
+password = "${LOCAL_MQTT_PASSWORD}"
+data_format = "json"
+
+# JSON transformation using JSONata
+json_transformation = '''
+    {
+      "value": $.fields.value,
+      "timestamp": $.timestamp
+    }
+  '''
+
+# Output Plugin to MQTT AGG Publisher
+[[outputs.mqtt]]
+servers = ["${AGG_MQTT_BROKER_URL}"]
+topic = '{{ .Tag "local_broker_id" }}/{{ .Tag "topic" }}'
+username = "${AGG_MQTT_USERNAME}"
+password = "${AGG_MQTT_PASSWORD}"
+data_format = "json"
+
+# JSON transformation using JSONata
+json_transformation = '''
+    {
+      "value": $.fields.value,
+      "timestamp": $.timestamp
+    }
+  '''
