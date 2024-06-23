@@ -1,0 +1,81 @@
+# Global agent configuration
+[agent]
+## Default data collection interval for all inputs
+interval = "10s"
+
+## Rounds collection interval to 'interval'
+## ie, if interval="10s" then always collect on :00, :10, :20, etc.
+round_interval = true
+
+## Telegraf will quit after this many iterations; 0 means no limit
+metric_batch_size = 1000
+
+## Maximum number of metrics to buffer before dropping metrics
+metric_buffer_limit = 10000
+
+## Collection jitter is used to jitter the collection by a random amount
+collection_jitter = "0s"
+
+## Collection offset can be used to shift the collection by the specified amount.
+collection_offset = "0s"
+
+## Default flushing interval for all outputs. Maximum flush_interval will be flush_interval + flush_jitter
+flush_interval = "10s"
+
+## Jitter the flush interval by a random amount. This is primarily to avoid large write spikes for users running a large number of telegraf instances.
+flush_jitter = "0s"
+
+## If set to true, do no set the "host" tag in the telegraf agent.
+omit_hostname = false
+
+# Global tags
+[global_tags]
+organization = "${INFLUXDB_ORG}"
+local_broker_id = "${LOCAL_MQTT_BROKER_ID}"
+
+[[inputs.openweathermap]]
+## OpenWeatherMap API key.
+app_id = "${OPENWEATHERMAP_API_KEY}"
+
+## City ID's to collect weather data from.
+city_id = ["${CITY_ID}"]
+
+## Language of the description field. Can be one of "ar", "bg", "ca", "cz", "de", "el", "en", "fa", "fi", "fr", "gl", "hr", "hu",
+## "it", "ja", "kr", "la", "lt", "mk", "nl", "pl", "pt", "ro", "ru", "se", "sk", "sl", "es", "tr", "ua", "vi", "zh_cn", "zh_tw"
+lang = "en"
+
+## APIs to fetch; can contain "weather" or "forecast".
+fetch = ["weather", "forecast"]
+
+## OpenWeatherMap base URL
+base_url = "https://api.openweathermap.org/"
+
+## Timeout for HTTP response.
+response_timeout = "5s"
+
+## Preferred unit system for temperature and wind speed. Can be one of
+## "metric", "imperial", or "standard".
+units = "metric"
+
+## Style to query the current weather; available options:
+##   batch      -- query multiple cities at once using the "group" endpoint
+##   individual -- query each city individually using the "weather" endpoint
+## You should use "individual" here as it is documented and provides more
+## frequent updates. The default is "batch" for backward compatibility.
+query_style = "individual"
+
+## Query interval to fetch data.
+## By default the global 'interval' setting is used. You should override the
+## interval here if the global setting is shorter than 10 minutes as
+## OpenWeatherMap weather data is only updated every 10 minutes.
+interval = "10m"
+
+# Output Plugin to InfluxDB v2
+[[outputs.influxdb_v2]]
+urls = ["${INFLUXDB_URL}"]
+timeout = "30s"
+content_encoding = "gzip"
+
+token = "${INFLUXDB_TOKEN}"
+organization = "${INFLUXDB_ORG}"
+bucket = "${INFLUXDB_BUCKET}"

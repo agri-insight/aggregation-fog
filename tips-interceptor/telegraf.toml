@@ -1,0 +1,69 @@
+# Global agent configuration
+[agent]
+## Default data collection interval for all inputs
+interval = "10s"
+
+## Rounds collection interval to 'interval'
+## ie, if interval="10s" then always collect on :00, :10, :20, etc.
+round_interval = true
+
+## Telegraf will quit after this many iterations; 0 means no limit
+metric_batch_size = 1000
+
+## Maximum number of metrics to buffer before dropping metrics
+metric_buffer_limit = 10000
+
+## Collection jitter is used to jitter the collection by a random amount
+collection_jitter = "0s"
+
+## Collection offset can be used to shift the collection by the specified amount.
+collection_offset = "0s"
+
+## Default flushing interval for all outputs. Maximum flush_interval will be flush_interval + flush_jitter
+flush_interval = "10s"
+
+## Jitter the flush interval by a random amount. This is primarily to avoid large write spikes for users running a large number of telegraf instances.
+flush_jitter = "0s"
+
+## If set to true, do no set the "host" tag in the telegraf agent.
+omit_hostname = false
+
+# Global tags
+[global_tags]
+organization = "${INFLUXDB_ORG}"
+local_broker_id = "${LOCAL_MQTT_BROKER_ID}"
+
+# MQTT Consumer Input Plugin
+[[inputs.mqtt_consumer]]
+servers = ["${AGG_MQTT_BROKER_URL}"]
+topics = [
+	"${LOCAL_MQTT_BROKER_ID}/tips/+/watering"
+]
+username = "${AGG_MQTT_USERNAME}"
+password = "${AGG_MQTT_PASSWORD}"
+data_format = "json"
+json_time_key = "timestamp"
+json_time_format = "unix_ms"
+
+# Topic parsing for tips
+[[inputs.mqtt_consumer.topic_parsing]]
+topic = "+/+/+/+"
+tags = "_/_/field_id/command_type"
+
+
+# Output Plugin to MQTT LOCAL ECHO Publisher
+[[outputs.mqtt]]
+servers = ["${LOCAL_MQTT_BROKER_URL}"]
+topic = 'tips/{{ .Tag "field_id" }}/{{ .Tag "command_type" }}'
+username = "${LOCAL_MQTT_USERNAME}"
+password = "${LOCAL_MQTT_PASSWORD}"
+data_format = "json"
+
+# JSON transformation using JSONata
+json_transformation = '''
+    {
+      "value": $.fields.value,
+      "timestamp": $.timestamp,
+      "delay": $.fields.delay
+    }
+  '''
